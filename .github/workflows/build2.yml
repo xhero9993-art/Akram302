@@ -1,0 +1,44 @@
+name: Build APK Smart Unzip
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Unzip and Move Files
+      run: |
+        unzip -o *.zip
+        if [ ! -f "gradlew" ]; then
+          cd $(find . -maxdepth 2 -name "gradlew" -exec dirname {} \;) 2>/dev/null || true
+        fi
+        chmod +x gradlew
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build Debug APK
+      run: |
+        if [ -f "gradlew" ]; then
+          ./gradlew assembleDebug
+        else
+          DIR=$(find . -maxdepth 2 -name "gradlew" -exec dirname {} \;)
+          cd "$DIR"
+          ./gradlew assembleDebug
+        fi
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: "**/build/outputs/apk/debug/*.apk"
